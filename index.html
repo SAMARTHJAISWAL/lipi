@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>lipi · a tiny language that compiles to WebAssembly</title>
+    <meta name="description" content="Write a small program, and watch it become tokens, a syntax tree, WebAssembly text and real WebAssembly bytes, then run it. A compiler written from scratch, running in your browser." />
+    <meta name="theme-color" content="#f6f3ec" />
+    <meta property="og:title" content="lipi · a tiny language that compiles to WebAssembly" />
+    <meta property="og:description" content="A compiler written from scratch that turns your code into real WebAssembly in the browser, and shows every stage on the way." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://samarthjaiswal.github.io/lipi/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="top">
+      <h1 class="brand"><span class="latin">lipi</span> <span class="deva" lang="hi">लिपि</span></h1>
+      <p class="tagline">A tiny language that compiles to <strong>WebAssembly</strong>, right here in your browser</p>
+    </header>
+
+    <main class="workbench">
+      <section class="pane source" aria-labelledby="source-title">
+        <div class="pane-head">
+          <h2 id="source-title">Program</h2>
+          <label class="examples">
+            <span class="sr-only">Example program</span>
+            <select id="examples"></select>
+          </label>
+          <div class="actions">
+            <button type="button" class="btn ghost" id="btn-share" title="Copy a link to this program">Share</button>
+            <button type="button" class="btn primary" id="btn-run" title="Compile and run (Ctrl+Enter)"><span class="play" aria-hidden="true"></span><span id="run-label">Run</span></button>
+          </div>
+        </div>
+        <div class="editor" id="editor">
+          <div class="gutter" id="gutter" aria-hidden="true"></div>
+          <div class="code-wrap">
+            <pre class="highlight" id="highlight" aria-hidden="true"></pre>
+            <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Program source" aria-describedby="diagnostic"></textarea>
+          </div>
+        </div>
+        <div class="diagnostic" id="diagnostic" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="pane stages" aria-label="Compiler stages and output">
+        <ol class="pipeline" id="pipeline" aria-label="The compiler's stages"></ol>
+        <div class="tabs" role="tablist" aria-label="Views">
+          <button role="tab" id="tab-output" aria-controls="view-output" aria-selected="true">Output</button>
+          <button role="tab" id="tab-tokens" aria-controls="view-tokens" aria-selected="false" tabindex="-1">Tokens</button>
+          <button role="tab" id="tab-tree" aria-controls="view-tree" aria-selected="false" tabindex="-1">Syntax tree</button>
+          <button role="tab" id="tab-wat" aria-controls="view-wat" aria-selected="false" tabindex="-1">WebAssembly</button>
+          <button role="tab" id="tab-bytes" aria-controls="view-bytes" aria-selected="false" tabindex="-1">Bytes</button>
+        </div>
+        <div class="views">
+          <div class="view" role="tabpanel" id="view-output" aria-labelledby="tab-output">
+            <div class="output-grid" id="output-grid">
+              <canvas id="canvas" width="256" height="256" aria-label="The canvas that plot() draws on" role="img" hidden></canvas>
+              <pre class="console" id="console" aria-live="polite"></pre>
+            </div>
+            <p class="run-status" id="run-status"></p>
+          </div>
+          <div class="view" role="tabpanel" id="view-tokens" aria-labelledby="tab-tokens" hidden>
+            <p class="view-note">The lexer cuts the source into tokens, dropping spaces and comments.</p>
+            <div class="tokens" id="tokens"></div>
+          </div>
+          <div class="view" role="tabpanel" id="view-tree" aria-labelledby="tab-tree" hidden>
+            <p class="view-note">The parser builds this tree; the type checker adds a type to every expression.</p>
+            <div class="tree" id="tree"></div>
+          </div>
+          <div class="view" role="tabpanel" id="view-wat" aria-labelledby="tab-wat" hidden>
+            <p class="view-note">The code generator's output in the WebAssembly text format: the same instructions as the bytes, readable.</p>
+            <pre class="wat" id="wat"></pre>
+          </div>
+          <div class="view" role="tabpanel" id="view-bytes" aria-labelledby="tab-bytes" hidden>
+            <p class="view-note" id="bytes-note">The module itself, byte by byte, exactly as the browser receives it. Hover a byte to see which part it belongs to.</p>
+            <ul class="legend" id="legend"></ul>
+            <div class="hex" id="hex"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <section class="guide" aria-labelledby="guide-title">
+      <h2 id="guide-title">The language in one screen</h2>
+      <div class="guide-grid">
+        <div>
+          <h3>Values</h3>
+          <p><code>int</code> (32-bit), <code>float</code> (64-bit) and <code>bool</code>. Ints and floats never mix silently: convert with <code>float(n)</code> or <code>int(x)</code>.</p>
+          <pre><code>let n = 42;
+let x: float = 2.5;
+let ok = n > 40 &amp;&amp; x &lt; 3.0;</code></pre>
+        </div>
+        <div>
+          <h3>Control flow</h3>
+          <p><code>if</code>/<code>else</code>, <code>while</code>, <code>for i in a..b</code> (b not included), <code>break</code>, <code>continue</code> and <code>return</code>.</p>
+          <pre><code>for i in 0..10 {
+  if i % 2 == 0 { continue; }
+  print(i);
+}</code></pre>
+        </div>
+        <div>
+          <h3>Functions</h3>
+          <p>Parameters and results have types; every path must return. Recursion works.</p>
+          <pre><code>fn gcd(a: int, b: int) -> int {
+  if b == 0 { return a; }
+  return gcd(b, a % b);
+}</code></pre>
+        </div>
+        <div>
+          <h3>Built in</h3>
+          <ul class="builtins" id="builtins"></ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
