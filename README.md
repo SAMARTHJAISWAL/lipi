@@ -110,7 +110,7 @@ The playground compiles as you type and underlines errors in place. It shows how
   - **Share links:** a crafted link could expand to gigabytes, and a very large program couldn't be shared.
   - **Two misleading messages:** `0x_`, and returning a call that returns nothing.
 
-`scripts/e2e.py` (Python Playwright) checks 40 things in a real browser:
+`scripts/e2e.py` (Python Playwright) checks 41 things in a real browser:
 
 - **Running:**
   - the opening program draws the Mandelbrot set;
@@ -122,7 +122,7 @@ The playground compiles as you type and underlines errors in place. It shows how
   - Stop ends an endless loop at once, and the 5-second limit ends it anyway, while the page stays responsive.
 - **The rest of the page:**
   - every tab shows its stage, arrow keys move between tabs, and clicking a pipeline stage opens its view;
-  - a Share link reopens and reruns the same program;
+  - a Share link reopens and reruns the same program, in a new tab or pasted into an open one;
   - the editor indents after `{` and outdents `}`, and the draft survives a reload;
   - on a phone, there is no sideways scrolling and every control is big enough to tap.
 

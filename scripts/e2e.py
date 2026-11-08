@@ -140,6 +140,12 @@ with sync_playwright() as p:
     other.wait_for_function('window.__lipi !== undefined')
     check('the link opens the same program and runs it', wait_for(lambda: other.locator('#console').inner_text() == '144', 8), other.locator('#console').inner_text())
     other.close()
+    # The same link pasted into a tab that is already open (only the #fragment changes).
+    page.goto(BASE + '#example=hello')
+    page.wait_for_function('window.__lipi !== undefined')
+    wait_for(lambda: status(page).startswith('Ran in'), 8)
+    page.evaluate(f'location.hash = {link.split("#", 1)[1]!r}')
+    check('a link pasted into an open tab runs the new program', wait_for(lambda: console_text(page) == '144', 8), console_text(page))
 
     # Editor behaviour.
     set_code(page, 'fn main() {')

@@ -46,7 +46,10 @@ export class App {
     this.editor.onRun = () => this.runNow();
     $('btn-run').addEventListener('click', () => (this.run?.running ? this.run.stop() : this.runNow()));
     $('btn-share').addEventListener('click', () => void this.share());
-    window.addEventListener('hashchange', () => void this.loadFromHash());
+    // A new link pasted into this tab: load that program and run it, like opening it fresh.
+    window.addEventListener('hashchange', async () => {
+      if (await this.loadFromHash()) this.runNow();
+    });
     void this.start();
   }
 
